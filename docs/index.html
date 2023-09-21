@@ -51,7 +51,7 @@ const main = async () => {
 				const $wrapper = document.createElement('div');
 				$result.append($wrapper);
 				const buffer = new Uint8Array(await data.arrayBuffer());
-				for (let offset = 0; (offset = indexOfMagic(buffer, [0x44, 0x44, 0x53, 0x20], offset)) > 0;) {
+				for (let offset = 0; (offset = indexOfMagic(buffer, [0x44, 0x44, 0x53, 0x20], offset)) >= 0;) {
 					const [
 						magic,
 						headerSize,
