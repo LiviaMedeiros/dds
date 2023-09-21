@@ -20,17 +20,12 @@ import {
 	MagickFormat,
 } from './magick.min.mjs';
 
-// TODO: Boyer–Moore and get rid of recursion
+// TODO: Boyer–Moore
 const indexOfMagic = (buffer, magic, offset = 0) => {
-	if (offset >= buffer.byteLength)
-		return -1;
-	offset = buffer.indexOf(magic[0], offset);
-	if (offset < 0)
-		return -1;
-
-	return magic.every(($, _) => $ === buffer[offset + _])
-		? offset
-		: indexOfMagic(buffer, magic, offset + 1);
+	for (Math; (offset = buffer.indexOf(magic[0], offset)) >= 0 && offset < buffer.byteLength; offset++)
+		if (magic.every(($, _) => $ === buffer[offset + _]))
+			return offset;
+	return -1;
 };
 
 const main = async () => {
