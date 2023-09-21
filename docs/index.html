@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!-- 엘샤#2343 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>DDS extractor</title>
+<meta name="format-detection" content="email=no,telephone=no" />
+<meta name="author" content="LiviaMedeiros" />
+<meta name="description" content="DDS extractor" />
+<meta name="theme-color" content="#003388" />
+<link href="uppy.min.css" rel="stylesheet" />
+<script type="module">
+import {
+	Uppy,
+	Dashboard,
+} from './uppy.min.mjs';
+import {
+	initializeImageMagick,
+	ImageMagick,
+	MagickFormat,
+} from './magick.min.mjs';
+
+const indexOfMagic = (buffer, magic, offset = 0) => {
+	if (offset >= buffer.byteLength)
+		return -1;
+	offset = buffer.indexOf(magic[0], offset);
+	if (offset < 0)
+		return -1;
+
+	return magic.every(($, _) => $ === buffer[offset + _])
+		? offset
+		: indexOfMagic(buffer, magic, offset + 1);
+};
+
+const main = async () => {
+	await initializeImageMagick('./magick.wasm');
+	const $result = document.getElementById('result');
+
+	const uppy = new Uppy()
+		.use(Dashboard, {
+			allowMultipleUploads: false,
+			inline: true,
+			proudlyDisplayPoweredByUppy: true,
+			target: '#upload',
+			theme: 'dark',
+		})
+		.on('files-added', () => void uppy.upload())
+		.on('complete', async ({ successful }) => {
+			successful.forEach(async ({ data }) => {
+				const $wrapper = document.createElement('div');
+				$result.append($wrapper);
+				const buffer = new Uint8Array(await data.arrayBuffer());
+				for (let offset = 0; (offset = indexOfMagic(buffer, [0x44, 0x44, 0x53, 0x20], offset)) > 0;) {
+					const [
+						magic,
+						headerSize,
+						,
+						height,
+						width,
+						,,
+						mipMapCount,
+						,,,,,,,,,,,
+						pfSize,
+						,,
+						pfRGBBitCount,
+						,,,,
+						,,,,
+						,
+					] = new Uint32Array(buffer.buffer, buffer.byteOffset + offset, 32);
+
+					if (magic !== 542327876) {
+						console.error(`magic mismatch: 542327876 !== ${magic}`);
+						offset += 4;
+						continue;
+					}
+					if (headerSize !== 124) {
+						console.error(`headerSize mismatch: 124 !== ${headerSize}`);
+						offset += 4;
+						continue;
+					}
+					if (pfSize !== 32) {
+						console.error(`pfSize mismatch: 32 !== ${pfSize}`);
+						offset += 4;
+						continue;
+					}
+					if (mipMapCount < 1) {
+						console.warn(`no mips: mipMapCount === ${mipMapCount}`);
+					}
+
+					const ddsSize = width * height * pfRGBBitCount / 8 + 128;
+
+					ImageMagick.read(new Uint8Array(buffer.buffer, buffer.byteOffset + offset, ddsSize), $ =>
+						$.write(MagickFormat.Png, data =>
+							$wrapper.append(Object.assign(document.createElement('img'), {
+								src: URL.createObjectURL(new File([data], 'out.png', { type: 'image/png'}))
+							}))));
+
+					offset += ddsSize;
+				}
+			});
+			uppy.cancelAll();
+		});
+};
+
+document.addEventListener('DOMContentLoaded', main, { once: true });
+</script>
+<style>
+html, body {
+	background-color: #999;
+	cursor: grabbing;
+}
+:root {
+	color-scheme: dark;
+}
+#result img {
+	display: inline-block;
+	margin: 1rem;
+	border: solid 2px purple;
+	background: repeating-conic-gradient(rgba(0, 0, 0, .5) 0% 25%, rgba(255, 255, 255, .5) 0% 50%) 50% / 16px 16px;
+}
+</style>
+</head>
+<body>
+<div id="content">
+	<div id="upload"></div>
+	<div id="result"></div>
+</div>
+</body>
+</html>
