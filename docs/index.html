@@ -20,6 +20,7 @@ import {
 	MagickFormat,
 } from './magick.min.mjs';
 
+// TODO: Boyer–Moore and get rid of recursion
 const indexOfMagic = (buffer, magic, offset = 0) => {
 	if (offset >= buffer.byteLength)
 		return -1;
