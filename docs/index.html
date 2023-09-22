@@ -105,17 +105,17 @@ const main = async () => {
 						offset += 4;
 						continue;
 					}
-					if (mipMapCount < 1) {
-						console.warn(`no mips: mipMapCount === ${mipMapCount}`);
-					}
 
 					const ddsSize = width * height * pfRGBBitCount / 8 + 128;
 
 					ImageMagick.read(new Uint8Array(buffer.buffer, buffer.byteOffset + offset, ddsSize), $ =>
-						$.write(MagickFormat.Png, data =>
-							$wrapper.append(Object.assign(document.createElement('img'), {
+						$.write(MagickFormat.Png, data => {
+							const $img = Object.assign(document.createElement('img'), {
 								src: URL.createObjectURL(new File([data], 'out.png', { type: 'image/png'}))
-							}))));
+							});
+							$img.classList.add(`mipmap-count-${mipMapCount}`);
+							$wrapper.append($img);
+						}));
 
 					offset += ddsSize;
 				}
@@ -139,6 +139,9 @@ html, body {
 	margin: 1rem;
 	border: solid 2px purple;
 	background: repeating-conic-gradient(rgba(0, 0, 0, .5) 0% 25%, rgba(255, 255, 255, .5) 0% 50%) 50% / 16px 16px;
+}
+#result img.mipmap-count-0 {
+	border: solid 2px green;
 }
 </style>
 </head>
