@@ -28,6 +28,39 @@ const indexOfMagic = (buffer, magic, offset = 0) => {
 	return -1;
 };
 
+const parseDDSHeader = ({ buffer, byteOffset }, offset) => {
+	// New ArrayBuffer is to avoid troubles if header is not aligned by 4 bytes
+	const [
+		magic,
+		headerSize,
+		, // dwFlags
+		height,
+		width,
+		,, // dwPitchOrLinearSize, dwDepth
+		mipMapCount,
+		,,,,,,,,,,, // dwReserved1
+		pfSize,
+		,, // pf_dwFlags, pf_dwFourCC
+		pfRGBBitCount,
+		,,,, // pf_dw*BitMask
+		,,,, // dwCaps*
+		, // dwReserved2
+	] = new Uint32Array(buffer.slice(
+		byteOffset + offset,
+		byteOffset + offset + 128
+	));
+
+	return {
+		magic,
+		headerSize,
+		height,
+		width,
+		mipMapCount,
+		pfSize,
+		pfRGBBitCount,
+	};
+};
+
 const main = async () => {
 	await initializeImageMagick('./magick.wasm');
 	const $result = document.getElementById('result');
@@ -47,22 +80,15 @@ const main = async () => {
 				$result.append($wrapper);
 				const buffer = new Uint8Array(await data.arrayBuffer());
 				for (let offset = 0; (offset = indexOfMagic(buffer, [0x44, 0x44, 0x53, 0x20], offset)) >= 0;) {
-					const [
+					const {
 						magic,
 						headerSize,
-						,
 						height,
 						width,
-						,,
 						mipMapCount,
-						,,,,,,,,,,,
 						pfSize,
-						,,
 						pfRGBBitCount,
-						,,,,
-						,,,,
-						,
-					] = new Uint32Array(buffer.buffer, buffer.byteOffset + offset, 32);
+					} = parseDDSHeader(buffer, offset);
 
 					if (magic !== 542327876) {
 						console.error(`magic mismatch: 542327876 !== ${magic}`);
